@@ -1,0 +1,15 @@
+============================================================================
+  HiGHS LP SOLVER LOG | Method: highs-ds | Presolve: True
+============================================================================
+Status code     : 0
+Solver message  : Optimization terminated successfully. (HiGHS Status 7: Optimal)
+Success flag    : True
+Iterations (nit): 11
+Solve time      : 7.881 ms (0.007881 s)
+Objective (fun) : 138.0
+----------------------------------------------------------------------------
+Primal solution dimension: 36 variables
+Non-zero variables count : 6
+Equality dual marginals  : 12 values
+Lower bound reduced costs: min=0.0000, max=46.0000
+============================================================================

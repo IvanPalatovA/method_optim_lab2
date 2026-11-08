@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>НИЯУ МИФИ | Лабораторная работа № 2: Сетевые модели и задача о назначениях</title>
+  <style>
+    :root {
+      --primary: #1976d2;
+      --primary-dark: #0d47a1;
+      --secondary: #388e3c;
+      --accent: #f57c00;
+      --danger: #d32f2f;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding: 20px;
+    }
+    .header {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+    }
+    .header h1 { font-size: 1.5rem; color: var(--primary-dark); margin-bottom: 6px; }
+    .header p { color: var(--text-muted); font-size: 0.95rem; }
+    .badge-bar { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      background: #e2e8f0;
+      color: #334155;
+    }
+    .badge-primary { background: #dbeafe; color: #1e40af; }
+    .badge-success { background: #dcfce7; color: #166534; }
+    .badge-warning { background: #fef3c7; color: #92400e; }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 1024px) {
+      .main-grid { grid-template-columns: 1fr; }
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+    }
+    .card h2 {
+      font-size: 1.15rem;
+      margin-bottom: 14px;
+      color: #0f172a;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .btn-group {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    button {
+      padding: 8px 14px;
+      border: 1px solid var(--border);
+      background: #ffffff;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    button:hover { background: #f1f5f9; border-color: #cbd5e1; }
+    button.active {
+      background: var(--primary);
+      color: #ffffff;
+      border-color: var(--primary);
+    }
+
+    /* Таблица матрицы */
+    .table-container { overflow-x: auto; margin-bottom: 16px; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      text-align: center;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 6px 8px;
+    }
+    th { background: #f8fafc; font-weight: 600; color: #475569; }
+    td input {
+      width: 44px;
+      padding: 4px;
+      text-align: center;
+      border: 1px solid transparent;
+      border-radius: 4px;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+    td input:focus {
+      outline: none;
+      border-color: var(--primary);
+      background: #eff6ff;
+    }
+    td.assigned {
+      background: #dcfce7 !important;
+      font-weight: bold;
+      color: #166534;
+      border: 2px solid #22c55e;
+    }
+    td.greedy-assigned {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    /* SVG Граф */
+    .graph-container {
+      width: 100%;
+      height: 480px;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      position: relative;
+    }
+    svg { width: 100%; height: 100%; }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 14px;
+    }
+    .metric-card {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      text-align: center;
+    }
+    .metric-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; }
+    .metric-val { font-size: 1.25rem; font-weight: 700; color: #0f172a; margin-top: 4px; }
+    .metric-val.optimal { color: var(--secondary); }
+    .metric-val.greedy { color: var(--accent); }
+    .metric-val.gap { color: var(--danger); }
+
+    .info-box {
+      margin-top: 16px;
+      padding: 12px 16px;
+      background: #eff6ff;
+      border-left: 4px solid var(--primary);
+      border-radius: 4px;
+      font-size: 0.85rem;
+      color: #1e3a8a;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>Интерактивный стенд: Оптимизация назначений в ремонтной сети</h1>
+    <p>Лабораторная работа № 2 | Вариант 6 (Палатов Иван Александрович, гр. Б24-517, seed = 10116)</p>
+    <div class="badge-bar">
+      <span class="badge badge-primary">Модель: Bipartite Network Flow / Assignment LP</span>
+      <span class="badge badge-success">Солвер: Точный Венгерский алгоритм (KKT / Симплекс)</span>
+      <span class="badge badge-warning">Размерность: 6 бригад × 6 объектов (36 дуг)</span>
+    </div>
+  </div>
+
+  <div class="main-grid">
+    <!-- Левая колонка: Матрица стоимостей и управление -->
+    <div class="card">
+      <h2>
+        <span>Матрица времени выполнения работ $c_{ij}$ (часы)</span>
+        <button onclick="resetBase()">Сброс к варианту 6</button>
+      </h2>
+
+      <div class="btn-group">
+        <button class="active" id="btn-base" onclick="setScenario('base')">Базовый режим</button>
+        <button id="btn-fail" onclick="setScenario('fail')">Отказ дуги B4-O2</button>
+        <button id="btn-greedy" onclick="setScenario('greedy_highlight')">Сравнение с жадным</button>
+      </div>
+
+      <div class="table-container">
+        <table id="matrix-table">
+          <!-- Генерируется динамически через JS -->
+        </table>
+      </div>
+
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-label">Оптимум (HiGHS / Венгерский)</div>
+          <div class="metric-val optimal" id="metric-opt">138.0 ч</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Жадная эвристика</div>
+          <div class="metric-val greedy" id="metric-greedy">144.0 ч</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Зазор субоптимальности</div>
+          <div class="metric-val gap" id="metric-gap">+4.35%</div>
+        </div>
+      </div>
+
+      <div class="info-box" id="info-text">
+        <strong>Теория полной унимодулярности (ТУМ):</strong> Матрица инцидентности двудольного графа обладает свойством ТУМ, поэтому непрерывное ЛП решение гарантированно целочисленно ($x_{ij}^* \in \{0, 1\}$).
+      </div>
+    </div>
+
+    <!-- Правая колонка: Визуализация сети -->
+    <div class="card">
+      <h2>Топология сети и найденные назначения (поток f=1.0)</h2>
+      <div class="graph-container">
+        <svg id="network-svg"></svg>
+      </div>
+      <div style="margin-top: 12px; display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted);">
+        <span>🔵 Бригады (Источники: supply = +1, потенциал $u_i$)</span>
+        <span>🟢 Объекты (Сток: demand = +1, потенциал $v_j$)</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Исходная матрица варианта 6 (seed 10116)
+    const BASE_MATRIX = [
+      [43, 33, 40, 36, 61, 42],
+      [24, 61, 57, 29, 26, 29],
+      [40, 45, 62, 25, 43, 25],
+      [41, 15, 64, 50, 41, 44],
+      [27, 58, 25, 35, 18, 45],
+      [63, 57, 20, 62, 51, 52]
+    ];
+
+    const BRIGADES = ["B1", "B2", "B3", "B4", "B5", "B6"];
+    const OBJECTS = ["O1", "O2", "O3", "O4", "O5", "O6"];
+
+    let currentMatrix = JSON.parse(JSON.stringify(BASE_MATRIX));
+    let activeScenario = "base";
+
+    // Клиентский Венгерский алгоритм для точного решения задачи о назначениях
+    function hungarian(matrix) {
+      const n = matrix.length;
+      let u = new Array(n + 1).fill(0);
+      let v = new Array(n + 1).fill(0);
+      let p = new Array(n + 1).fill(0);
+      let way = new Array(n + 1).fill(0);
+
+      for (let i = 1; i <= n; i++) {
+        p[0] = i;
+        let j0 = 0;
+        let minv = new Array(n + 1).fill(Infinity);
+        let used = new Array(n + 1).fill(false);
+
+        do {
+          used[j0] = true;
+          let i0 = p[j0];
+          let delta = Infinity;
+          let j1 = 0;
+
+          for (let j = 1; j <= n; j++) {
+            if (!used[j]) {
+              let cur = matrix[i0 - 1][j - 1] - u[i0] - v[j];
+              if (cur < minv[j]) {
+                minv[j] = cur;
+                way[j] = j0;
+              }
+              if (minv[j] < delta) {
+                delta = minv[j];
+                j1 = j;
+              }
+            }
+          }
+
+          for (let j = 0; j <= n; j++) {
+            if (used[j]) {
+              u[p[j]] += delta;
+              v[j] -= delta;
+            } else {
+              minv[j] -= delta;
+            }
+          }
+          j0 = j1;
+        } while (p[j0] !== 0);
+
+        do {
+          let j1 = way[j0];
+          p[j0] = p[j1];
+          j0 = j1;
+        } while (j0 !== 0);
+      }
+
+      let match = new Array(n);
+      for (let j = 1; j <= n; j++) {
+        if (p[j] > 0) {
+          match[p[j] - 1] = j - 1;
+        }
+      }
+
+      let totalCost = 0;
+      let pairs = [];
+      for (let i = 0; i < n; i++) {
+        let j = match[i];
+        pairs.push([i, j]);
+        totalCost += matrix[i][j];
+      }
+
+      return {
+        totalCost,
+        pairs,
+        u: u.slice(1),
+        v: v.slice(1)
+      };
+    }
+
+    // Жадная эвристика
+    function greedySolve(matrix) {
+      const n = matrix.length;
+      let allPairs = [];
+      for (let i = 0; i < n; i++) {
+        for (let j = 0; j < n; j++) {
+          allPairs.push({ i, j, cost: matrix[i][j] });
+        }
+      }
+      allPairs.sort((a, b) => a.cost - b.cost);
+
+      let usedR = new Set();
+      let usedC = new Set();
+      let pairs = [];
+      let totalCost = 0;
+
+      for (let p of allPairs) {
+        if (!usedR.has(p.i) && !usedC.has(p.j)) {
+          usedR.add(p.i);
+          usedC.add(p.j);
+          pairs.push([p.i, p.j]);
+          totalCost += p.cost;
+        }
+        if (pairs.length === n) break;
+      }
+
+      return { totalCost, pairs };
+    }
+
+    function renderTable() {
+      const optRes = hungarian(currentMatrix);
+      const greedyRes = greedySolve(currentMatrix);
+
+      const optSet = new Set(optRes.pairs.map(p => `${p[0]}_${p[1]}`));
+      const greedySet = new Set(greedyRes.pairs.map(p => `${p[0]}_${p[1]}`));
+
+      const table = document.getElementById("matrix-table");
+      let html = "<thead><tr><th>Бригада \\ Объект</th>";
+      for (let o of OBJECTS) html += `<th>${o}</th>`;
+      html += "<th>Потенциал $u_i$</th></tr></thead><tbody>";
+
+      for (let i = 0; i < 6; i++) {
+        html += `<tr><th>${BRIGADES[i]}</th>`;
+        for (let j = 0; j < 6; j++) {
+          const isOpt = optSet.has(`${i}_${j}`);
+          const isGreedy = greedySet.has(`${i}_${j}`);
+          let cls = isOpt ? "assigned" : (activeScenario === "greedy_highlight" && isGreedy ? "greedy-assigned" : "");
+          html += `<td class="${cls}">
+            <input type="number" min="1" max="999" value="${currentMatrix[i][j]}"
+              onchange="onCellChange(${i}, ${j}, this.value)">
+          </td>`;
+        }
+        html += `<td style="font-weight:600; color:#1976d2;">${optRes.u[i]}</td></tr>`;
+      }
+
+      html += "<tr><th>Потенциал $v_j$</th>";
+      for (let j = 0; j < 6; j++) {
+        html += `<td style="font-weight:600; color:#388e3c;">${optRes.v[j]}</td>`;
+      }
+      html += `<td style="font-weight:bold;">Σ=${optRes.totalCost}</td></tr></tbody>`;
+      table.innerHTML = html;
+
+      // Обновляем метрики
+      document.getElementById("metric-opt").innerText = `${optRes.totalCost.toFixed(1)} ч`;
+      document.getElementById("metric-greedy").innerText = `${greedyRes.totalCost.toFixed(1)} ч`;
+      const gap = ((greedyRes.totalCost - optRes.totalCost) / optRes.totalCost) * 100;
+      document.getElementById("metric-gap").innerText = `+${gap.toFixed(2)}%`;
+
+      renderSVG(optRes.pairs, optRes.u, optRes.v);
+    }
+
+    function renderSVG(optPairs, u, v) {
+      const svg = document.getElementById("network-svg");
+      svg.innerHTML = "";
+
+      const width = svg.clientWidth || 500;
+      const height = svg.clientHeight || 480;
+      const xLeft = 70;
+      const xRight = width - 70;
+      const yStep = height / 7;
+
+      // Рисуем неактивные линии
+      for (let i = 0; i < 6; i++) {
+        const y1 = yStep * (i + 1);
+        for (let j = 0; j < 6; j++) {
+          const y2 = yStep * (j + 1);
+          const isOpt = optPairs.some(p => p[0] === i && p[1] === j);
+          if (!isOpt) {
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", xLeft);
+            line.setAttribute("y1", y1);
+            line.setAttribute("x2", xRight);
+            line.setAttribute("y2", y2);
+            line.setAttribute("stroke", "#f1f5f9");
+            line.setAttribute("stroke-width", "1");
+            svg.appendChild(line);
+          }
+        }
+      }
+
+      // Рисуем активные линии (потоки f=1)
+      for (let p of optPairs) {
+        const i = p[0];
+        const j = p[1];
+        const y1 = yStep * (i + 1);
+        const y2 = yStep * (j + 1);
+
+        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        line.setAttribute("x1", xLeft);
+        line.setAttribute("y1", y1);
+        line.setAttribute("x2", xRight);
+        line.setAttribute("y2", y2);
+        line.setAttribute("stroke", "#22c55e");
+        line.setAttribute("stroke-width", "3.5");
+        svg.appendChild(line);
+
+        // Текст на ребре
+        const midX = (xLeft + xRight) / 2 + (j - i) * 6;
+        const midY = (y1 + y2) / 2;
+        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        text.setAttribute("x", midX);
+        text.setAttribute("y", midY - 4);
+        text.setAttribute("fill", "#15803d");
+        text.setAttribute("font-size", "11");
+        text.setAttribute("font-weight", "bold");
+        text.setAttribute("text-anchor", "middle");
+        text.textContent = `${currentMatrix[i][j]} ч`;
+        svg.appendChild(text);
+      }
+
+      // Рисуем узлы бригад
+      for (let i = 0; i < 6; i++) {
+        const y = yStep * (i + 1);
+        const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        circle.setAttribute("cx", xLeft);
+        circle.setAttribute("cy", y);
+        circle.setAttribute("r", 20);
+        circle.setAttribute("fill", "#1976d2");
+        svg.appendChild(circle);
+
+        const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        label.setAttribute("x", xLeft);
+        label.setAttribute("y", y + 4);
+        label.setAttribute("fill", "#ffffff");
+        label.setAttribute("font-size", "11");
+        label.setAttribute("font-weight", "bold");
+        label.setAttribute("text-anchor", "middle");
+        label.textContent = BRIGADES[i];
+        svg.appendChild(label);
+      }
+
+      // Рисуем узлы объектов
+      for (let j = 0; j < 6; j++) {
+        const y = yStep * (j + 1);
+        const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        rect.setAttribute("x", xRight - 20);
+        rect.setAttribute("y", y - 20);
+        rect.setAttribute("width", 40);
+        rect.setAttribute("height", 40);
+        rect.setAttribute("rx", 6);
+        rect.setAttribute("fill", "#388e3c");
+        svg.appendChild(rect);
+
+        const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        label.setAttribute("x", xRight);
+        label.setAttribute("y", y + 4);
+        label.setAttribute("fill", "#ffffff");
+        label.setAttribute("font-size", "11");
+        label.setAttribute("font-weight", "bold");
+        label.setAttribute("text-anchor", "middle");
+        label.textContent = OBJECTS[j];
+        svg.appendChild(label);
+      }
+    }
+
+    function onCellChange(i, j, val) {
+      currentMatrix[i][j] = parseFloat(val) || 0;
+      renderTable();
+    }
+
+    function resetBase() {
+      currentMatrix = JSON.parse(JSON.stringify(BASE_MATRIX));
+      setScenario("base");
+    }
+
+    function setScenario(scen) {
+      activeScenario = scen;
+      document.querySelectorAll(".btn-group button").forEach(b => b.classList.remove("active"));
+
+      if (scen === "base") {
+        document.getElementById("btn-base").classList.add("active");
+        currentMatrix = JSON.parse(JSON.stringify(BASE_MATRIX));
+        document.getElementById("info-text").innerHTML =
+          "<strong>Базовый сценарий:</strong> Штатное расписание бригад. Суммарное время 138.0 ч. ТУМ гарантирует 100% целочисленность решения.";
+      } else if (scen === "fail") {
+        document.getElementById("btn-fail").classList.add("active");
+        currentMatrix = JSON.parse(JSON.stringify(BASE_MATRIX));
+        currentMatrix[3][1] = 999; // закрываем B4-O2
+        document.getElementById("info-text").innerHTML =
+          "<strong>Сценарий «Отказ дуги B4-O2»:</strong> Запрещено назначение B4 на O2 (c=999). Время возросло до 164.0 ч (ущерб +26.0 ч, +18.8%). Задействована альтернативная цепочка замещения.";
+      } else if (scen === "greedy_highlight") {
+        document.getElementById("btn-greedy").classList.add("active");
+        document.getElementById("info-text").innerHTML =
+          "<strong>Сравнение с жадной эвристикой:</strong> Жёлтым подсвечены назначения жадного алгоритма (144.0 ч), зелёным — точный оптимум (138.0 ч). Жадный подход попал в ловушку, оставив бригаде B1 долгий объект O6 (42 ч).";
+      }
+      renderTable();
+    }
+
+    window.onload = renderTable;
+    window.onresize = () => renderTable();
+  </script>
+</body>
+</html>
+
